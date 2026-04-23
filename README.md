@@ -1,288 +1,210 @@
-# A* Pathfinding Algorithm - Python Implementation
+# 🏇 Horse Race Derby - A* Pathfinding & Flocking Simulation
 
-This document explains how the A* (A-Star) pathfinding algorithm works in this Python implementation, which is based on Unity's pathfinding tutorial logic.
+A pygame-based horse racing simulation featuring autonomous AI horses that use A* pathfinding and Boids flocking algorithms to navigate a race track. This project demonstrates practical applications of pathfinding and emergent behavior in game development.
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Core Concepts](#core-concepts)
-3. [Algorithm Components](#algorithm-components)
-4. [How A* Works](#how-a-works)
-5. [Code Structure](#code-structure)
-6. [Path Smoothing](#path-smoothing)
-7. [Usage Guide](#usage-guide)
-8. [Example Walkthrough](#example-walkthrough)
+## ⚠️ Development Attribution & AI Disclaimer
 
-## Overview
+- **Code Generation:** The core game logic, pathfinding algorithms, and agent behaviors were generated with assistance from DeepSeek.
+- **Documentation:** This README, architectural diagrams, and technical explanations were written by Lumo (Proton's AI assistant).
 
-A* is a graph traversal and path search algorithm used in many fields of computer science, including game development for AI movement. It combines the benefits of Dijkstra's algorithm (which finds the shortest path) and Greedy Best-First-Search (which uses heuristics to find paths faster).
+*This project serves as an educational example of human-AI collaborative software development.*
 
-This implementation creates a grid-based pathfinding system where each cell can be either walkable or unwalkable, and finds the optimal path between two points while considering movement costs.
+---
 
-## Core Concepts
+## 📖 Overview
 
-### 1. **Nodes**
-Each cell in the grid is a `Node` with several properties:
-- **Position**: X and Y coordinates in the grid
-- **State**: Walkable or Unwalkable
-- **G Cost**: Distance from the start node
-- **H Cost**: Estimated distance to the target node (heuristic)
-- **F Cost**: Total cost (G + H)
-- **Parent**: Reference to the previous node in the path
+This horse racing game simulates 6 autonomous horses competing on a square track. Each horse uses:
 
-### 2. **Grid System**
-The grid converts between world coordinates (floating-point positions) and grid coordinates (integer cell positions). Each cell has a size, allowing the system to work with any scale.
+- **A* Pathfinding** to find optimal routes between checkpoints
+- **Flocking Behavior** to avoid collisions and coordinate with other horses
+- **Learning Memory** to remember barriers and improve future races
 
-### 3. **Cost Calculations**
-- **Straight movement cost**: 10 units
-- **Diagonal movement cost**: 14 units (approximately √2 × 10)
-- **Total cost formula**: F = G + H
+The race ends when all horses complete 1 lap, with statistics tracked for performance analysis.
 
-## Algorithm Components
+---
 
-### 1. **Open Set**
-A priority queue (implemented using a heap) that contains nodes waiting to be evaluated. Nodes with the lowest F cost are evaluated first.
+## ✨ Game Features
 
-### 2. **Closed Set**
-A set containing nodes that have already been evaluated. These nodes won't be revisited.
+| Feature | Description |
+|---------|-------------|
+| **6 AI Horses** | Autonomous agents with unique colors and names |
+| **Square Track** | 4-sided race track with 9 checkpoints |
+| **Pathfinding** | A* algorithm finds optimal routes around barriers |
+| **Flocking** | Separation, alignment, and cohesion behaviors |
+| **Statistics** | Lap times, resets, distance traveled, rankings |
+| **Persistence** | Race results saved to `horse_rankings.json` |
 
-### 3. **Heuristic Function**
-The algorithm uses the **octile distance** heuristic, which is appropriate for 8-directional movement:
-```
-distance = 14 × min(dx, dy) + 10 × |dx - dy|
-```
+---
 
-This accounts for diagonal movement being slightly longer than straight movement.
+## 🏗️ Technical Architecture
 
-## How A* Works
-
-### Step-by-Step Process
-
-1. **Initialization**
-   - Convert start and end positions to grid coordinates
-   - Reset all node costs to infinity
-   - Set start node's G cost to 0
-   - Calculate start node's H cost using the heuristic
-   - Add start node to open set
-
-2. **Main Loop**
-   ```
-   While open set is not empty:
-       1. Get node with lowest F cost from open set
-       2. Move it from open set to closed set
-       
-       3. If current node is the target:
-            Retrace and return the path
-       
-       4. For each walkable neighbor:
-            If neighbor is in closed set:
-                Skip it
-           
-            Calculate tentative G cost through current node
-           
-            If tentative G cost is less than neighbor's current G cost:
-                Update neighbor's parent to current node
-                Update neighbor's G and H costs
-               
-                If neighbor not in open set:
-                    Add it to open set
-   ```
-
-3. **Path Retracing**
-   - Start from the target node
-   - Follow parent references back to start node
-   - Reverse the list to get path from start to end
-
-### Visual Representation
-
-```
-Starting Node (S) → [Open Set: {S}] → [Closed Set: {}]
-
-Step 1: Evaluate S
-    ↓
-Check Neighbors → Calculate costs → Add to open set
-    ↓
-[Open Set: {A, B, C}] [Closed Set: {S}]
-
-Step 2: Pick lowest F cost (A)
-    ↓
-Continue until reaching Target (T)
+```mermaid
+graph TB
+    subgraph HorseRaceGame["HorseRaceGame"]
+        Horses["Horses<br/>(6 agents)"]
+        RaceTrack["RaceTrack<br/>(square)"]
+        RankingManager["RankingManager<br/>(statistics)"]
+        
+        subgraph Pathfinding["Pathfinding"]
+            AStar["A* Algorithm"]
+        end
+        
+        Horses --> Pathfinding
+        RaceTrack --> Pathfinding
+    end
+    
+    style HorseRaceGame fill:#1a1a2e,stroke:#e94560,color:#ffffff
+    style Horses fill:#16213e,stroke:#0f3460,color:#ffffff
+    style RaceTrack fill:#16213e,stroke:#0f3460,color:#ffffff
+    style RankingManager fill:#16213e,stroke:#0f3460,color:#ffffff
+    style Pathfinding fill:#0f3460,stroke:#533483,color:#ffffff
+    style AStar fill:#533483,stroke:#e94560,color:#ffffff
 ```
 
-## Code Structure
+---
 
-### 1. **Node Class**
+## 🧭 A* Pathfinding Implementation
+
+### Purpose
+Each horse uses A* to find the shortest path from its current position to the next checkpoint while avoiding track barriers.
+
+### Key Components
+
+#### Grid System (`models/grid.py`)
+- Converts world coordinates to grid cells (`node_size = 10 pixels`)
+- Marks track cells as `RACE_TRACK` (walkable)
+- Creates barriers around track edges as `UNWALKABLE`
+- 8-directional neighbor checking for diagonal movement
+
+#### Pathfinding Logic (`pathfinding/astar.py`)
 ```python
-class Node:
-    - x, y: Grid coordinates
-    - state: Walkable/Unwalkable
-    - g_cost: Distance from start
-    - h_cost: Heuristic to target
-    - f_cost: Total cost (g + h)
-    - parent: Previous node in path
+# Cost Calculation
+F = G + H
+- G: Actual distance traveled from start
+- H: Heuristic estimate to target (direct/Euclidean distance)
+- F: Total estimated cost
+
+# Heuristic
+Uses direct Euclidean distance for most direct routing:
+distance = sqrt(dx² + dy²) * 10
 ```
 
-### 2. **Grid Class**
+#### Path Optimization
+- **Caching:** Reuses successful paths between checkpoint pairs
+- **Barrier Memory:** Horses remember barrier positions to avoid repeats
+- **Line of Sight:** Simplifies paths by removing redundant waypoints
+- **Avoidance:** Can exclude known barrier positions from search
+
+#### Integration with Horses
 ```python
-class Grid:
-    - Manages 2D array of nodes
-    - Converts between world and grid coordinates
-    - Provides neighbor retrieval
-    - Handles walkability settings
-```
-
-### 3. **Pathfinding Class**
-```python
-class Pathfinding:
-    - Implements the A* algorithm
-    - Manages open/closed sets
-    - Calculates distances
-    - Retraces and smooths paths
-```
-
-### 4. **PathfindingManager**
-```python
-class PathfindingManager:
-    - Simple interface for path requests
-    - Handles visualization
-```
-
-## Path Smoothing
-
-After finding the grid-based path, the algorithm applies smoothing to create more natural movement:
-
-### Raycasting Approach
-1. Start with the first waypoint
-2. Try to connect it directly to later waypoints
-3. Check if there's a clear line of sight between points
-4. If line of sight exists, remove intermediate points
-5. This creates a more direct path while avoiding obstacles
-
-### Line of Sight Check
-Uses Bresenham's line algorithm to check all grid cells between two points. If any cell is unwalkable, the points don't have line of sight.
-
-```
-Before Smoothing:  S → A → B → C → D → E → T
-                    (7 waypoints)
-
-After Smoothing:   S → C → T
-                    (3 waypoints - more direct)
-```
-
-## Usage Guide
-
-### Basic Usage
-
-```python
-# Create a 10x10 grid
-grid = Grid(10, 10)
-
-# Set obstacles (make cells unwalkable)
-grid.set_walkable(5, 3, False)  # Make cell (5,3) unwalkable
-grid.set_walkable(5, 4, False)
-grid.set_walkable(5, 5, False)
-
-# Create pathfinding manager
-manager = PathfindingManager(grid)
-
-# Request a path
-start = (0.5, 0.5)  # World coordinates
-end = (9.5, 9.5)
-result = manager.request_path(start, end)
-
-# Check result
+# In models/horse.py - request_new_path()
+result = pathfinder.find_path(start, end, avoid_positions=self.barrier_memory)
 if result.success:
-    path = result.path  # List of smoothed waypoints
-    for point in path:
-        print(f"Waypoint: ({point[0]}, {point[1]})")
+    self.current_path = result.path
 ```
 
-### Setting Up Obstacles
+---
 
+## 🐑 Flocking Algorithm
+
+### Overview
+Based on Craig Reynolds' Boids algorithm, each horse exhibits three core behaviors plus game-specific forces.
+
+### Core Behaviors
+
+| Behavior | Weight | Purpose |
+|----------|--------|---------|
+| **Separation** | 1.0 | Avoid crowding nearby horses |
+| **Alignment** | 1.2 | Match velocity with neighbors |
+| **Cohesion** | 1.0 | Move toward group center |
+
+### Game-Specific Forces
+
+| Force | Weight | Purpose |
+|-------|--------|---------|
+| **Path Following** | 3.0 | Follow A*-generated path to checkpoint |
+| **Track Attraction** | 3.0 | Stay on the race track |
+| **Barrier Avoidance** | 5.0 | Steer away from track barriers |
+| **Checkpoint Attraction** | 5.0 | Move toward current checkpoint |
+| **Clockwise Enforcement** | 4.0 | Prevent counter-clockwise shortcuts |
+
+### Force Application
 ```python
-# Create a wall
-for y in range(3, 8):
-    grid.set_walkable(4, y, False)
-
-# Create a maze-like pattern
-obstacles = [(2, 2), (2, 3), (3, 2), (7, 7), (8, 8)]
-for x, y in obstacles:
-    grid.set_walkable(x, y, False)
+# In models/horse.py - flock()
+steering_force = separation + alignment + cohesion + path + track + barriers + checkpoint + clockwise
+acceleration += steering_force
+velocity += acceleration
+position += velocity
 ```
 
-## Example Walkthrough
+### Stuck Detection & Recovery
+- **Stuck Timer:** Resets if horse moves < 1 pixel per frame for 250 frames
+- **Barrier Hit Counter:** Resets after 8 consecutive barrier hits
+- **Wrong Direction Penalty:** Resets if moving counter-clockwise too often
+- **Auto-Reset:** Returns horse to start when stuck conditions detected
 
-Let's trace through a simple example:
+---
 
-### Scenario
-- Grid size: 5x5
-- Start: (0, 0)
-- Target: (4, 4)
-- Obstacle at (2, 2)
+### Dependencies
+- Python 3.7+
+- Pygame 2.0+
 
-### Pathfinding Process
+---
 
-1. **Initial State**
-   ```
-   S . . . .
-   . . . . .
-   . . X . .
-   . . . . .
-   . . . . T
-   ```
-   S = Start, T = Target, X = Obstacle
+## 🎮 Controls
 
-2. **First Evaluation**
-   - Start node (0,0) added to open set
-   - G=0, H=56 (estimated cost to target)
+| Input | Action |
+|-------|--------|
+| **Mouse Click** | Select a horse (shows info panel) |
+| **R Key** | Reset race (manual) |
+| **Reset Button** | Reset race (UI) |
+| **Q Key** | Quit after race completes |
 
-3. **Neighbor Expansion**
-   - Check all 8 neighbors
-   - Calculate their costs
-   - Add walkable neighbors to open set
+---
 
-4. **Continue Until Target Found**
-   - Always pick lowest F cost node
-   - Avoid obstacle at (2,2)
-   - Find path around it
+## 📁 File Structure
 
-5. **Result Path**
-   ```
-   S → (1,0) → (2,1) → (3,2) → (4,3) → T
-   ```
+```
+project/
+├── main.py                     # Entry point
+├── config.py                   # Game settings (FPS, dimensions, horse names)
+├── README.md                   # This file
+├── horse_rankings.json         # Saved race results
+│
+├── game/
+│   └── horse_race_game.py      # Main game loop and UI
+│
+├── models/
+│   ├── horse.py                # Horse agent with flocking logic
+│   ├── grid.py                 # Grid system for pathfinding
+│   ├── node.py                 # Node class for A*
+│   ├── vector2.py              # 2D vector math
+│   └── ranking.py              # Statistics and persistence
+│
+├── pathfinding/
+│   └── astar.py                # A* pathfinding implementation
+│
+├── track/
+│   └── race_track.py           # Track generation and checkpoint system
+│
+└── utils/
+    └── colors.py               # Color palette
+```
+---
 
-6. **Smoothing**
-   - Check line of sight from S to (3,2)
-   - If clear, remove intermediate points
-   - Result might be: S → (3,2) → T
+## 📄 License
 
-## Performance Considerations
+This project is for educational purposes. Feel free to modify and extend for learning pathfinding and flocking algorithms.
 
-### Time Complexity
-- **Worst case**: O(b^d) where b is branching factor and d is depth
-- **With good heuristic**: Often approaches O(d)
+---
 
-### Space Complexity
-- O(n) where n is number of nodes in the grid
+## 🙏 Credits
 
-### Optimization Techniques Used
-1. **Heap-based priority queue** for O(log n) node selection
-2. **Hash sets** for O(1) membership testing
-3. **Pre-calculated neighbors** for faster iteration
-4. **Path smoothing** reduces waypoint count
+- **AI Code Generation:** DeepSeek
+- **Documentation & Architecture:** Lumo (Proton AI)
+- **A* Algorithm:** Based on Unity pathfinding tutorial logic
+- **Flocking:** Craig Reynolds' Boids algorithm
+- **Graphics:** Pygame rendering library
 
-## Limitations and Considerations
-
-1. **Grid Resolution**: Higher resolution grids provide more precise paths but require more computation
-2. **Dynamic Obstacles**: This implementation assumes static obstacles; dynamic updates require re-running the algorithm
-3. **Memory Usage**: Large grids can consume significant memory (each node stores several values)
-4. **Heuristic Accuracy**: The octile heuristic assumes diagonal movement is allowed; adjust for 4-directional movement
-
-## Conclusion
-
-This A* implementation provides a robust pathfinding solution suitable for games and simulations. It balances performance with path quality through:
-- Efficient data structures (heaps, hash sets)
-- Accurate cost calculations
-- Path smoothing for natural movement
-- Clean, modular code structure
-
-The algorithm finds the shortest path while avoiding obstacles, making it ideal for AI movement in grid-based environments.
+---
+*Built with ❤️ for learning game AI and pathfinding algorithms through human-AI collaboration*
