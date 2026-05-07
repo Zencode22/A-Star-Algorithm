@@ -1,208 +1,171 @@
-# 🏇 Horse Race Derby - A* Pathfinding & Flocking Simulation
+# 🏇 Horse Racer - A* Pathfinding & Flocking Simulation
 
-A pygame-based horse racing simulation featuring autonomous AI horses that use A* pathfinding and Boids flocking algorithms to navigate a race track. This project demonstrates practical applications of pathfinding and emergent behavior in game development.
-
-## ⚠️ Development Attribution & AI Disclaimer
-
-- **Code Generation:** The core game logic, pathfinding algorithms, and agent behaviors were generated with assistance from DeepSeek.
-- **Documentation:** This README, architectural diagrams, and technical explanations were written by Lumo (Proton's AI assistant).
-
-*This project serves as an educational example of human-AI collaborative software development.*
+A pygame-based horse racing simulation featuring autonomous AI horses that navigate a square race track using A* pathfinding and Boids flocking algorithms. Watch six uniquely named horses compete, learn from their mistakes, and race to the finish!
 
 ---
 
-## 📖 Overview
+## 🎮 Quick Start
 
-This horse racing game simulates 6 autonomous horses competing on a square track. Each horse uses:
+### Option 1: Standalone Executable (No Python Required)
+1. Download `HorseRacer.exe` from the latest [GitHub Release](https://github.com/conno/Codes/releases)
+2. Double-click to run — the game starts immediately!
 
-- **A* Pathfinding** to find optimal routes between checkpoints
-- **Flocking Behavior** to avoid collisions and coordinate with other horses
-- **Learning Memory** to remember barriers and improve future races
-
-The race ends when all horses complete 1 lap, with statistics tracked for performance analysis.
-
----
-
-## ✨ Game Features
-
-| Feature | Description |
-|---------|-------------|
-| **6 AI Horses** | Autonomous agents with unique colors and names |
-| **Square Track** | 4-sided race track with 9 checkpoints |
-| **Pathfinding** | A* algorithm finds optimal routes around barriers |
-| **Flocking** | Separation, alignment, and cohesion behaviors |
-| **Statistics** | Lap times, resets, distance traveled, rankings |
-| **Persistence** | Race results saved to `horse_rankings.json` |
-
----
-
-## 🏗️ Technical Architecture
-
-```mermaid
-graph TB
-    subgraph HorseRaceGame["HorseRaceGame"]
-        Horses["Horses<br/>(6 agents)"]
-        RaceTrack["RaceTrack<br/>(square)"]
-        RankingManager["RankingManager<br/>(statistics)"]
-        
-        subgraph Pathfinding["Pathfinding"]
-            AStar["A* Algorithm"]
-        end
-        
-        Horses --> Pathfinding
-        RaceTrack --> Pathfinding
-    end
-    
-    style HorseRaceGame fill:#1a1a2e,stroke:#e94560,color:#ffffff
-    style Horses fill:#16213e,stroke:#0f3460,color:#ffffff
-    style RaceTrack fill:#16213e,stroke:#0f3460,color:#ffffff
-    style RankingManager fill:#16213e,stroke:#0f3460,color:#ffffff
-    style Pathfinding fill:#0f3460,stroke:#533483,color:#ffffff
-    style AStar fill:#533483,stroke:#e94560,color:#ffffff
+### Option 2: Run from Source
+```bash
+pip install -r requirements.txt
+python main.py
 ```
 
----
-
-## 🧭 A* Pathfinding Implementation
-
-### Purpose
-Each horse uses A* to find the shortest path from its current position to the next checkpoint while avoiding track barriers.
-
-### Key Components
-
-#### Grid System (`models/grid.py`)
-- Converts world coordinates to grid cells (`node_size = 10 pixels`)
-- Marks track cells as `RACE_TRACK` (walkable)
-- Creates barriers around track edges as `UNWALKABLE`
-- 8-directional neighbor checking for diagonal movement
-
-#### Pathfinding Logic (`pathfinding/astar.py`)
-```python
-# Cost Calculation
-F = G + H
-- G: Actual distance traveled from start
-- H: Heuristic estimate to target (direct/Euclidean distance)
-- F: Total estimated cost
-
-# Heuristic
-Uses direct Euclidean distance for most direct routing:
-distance = sqrt(dx² + dy²) * 10
-```
-
-#### Path Optimization
-- **Caching:** Reuses successful paths between checkpoint pairs
-- **Barrier Memory:** Horses remember barrier positions to avoid repeats
-- **Line of Sight:** Simplifies paths by removing redundant waypoints
-- **Avoidance:** Can exclude known barrier positions from search
-
-#### Integration with Horses
-```python
-# In models/horse.py - request_new_path()
-result = pathfinder.find_path(start, end, avoid_positions=self.barrier_memory)
-if result.success:
-    self.current_path = result.path
-```
+**Requirements:** Python 3.7+ | Pygame 2.0+
 
 ---
 
-## 🐑 Flocking Algorithm
-
-### Overview
-Based on Craig Reynolds' Boids algorithm, each horse exhibits three core behaviors plus game-specific forces.
-
-### Core Behaviors
-
-| Behavior | Weight | Purpose |
-|----------|--------|---------|
-| **Separation** | 1.0 | Avoid crowding nearby horses |
-| **Alignment** | 1.2 | Match velocity with neighbors |
-| **Cohesion** | 1.0 | Move toward group center |
-
-### Game-Specific Forces
-
-| Force | Weight | Purpose |
-|-------|--------|---------|
-| **Path Following** | 3.0 | Follow A*-generated path to checkpoint |
-| **Track Attraction** | 3.0 | Stay on the race track |
-| **Barrier Avoidance** | 5.0 | Steer away from track barriers |
-| **Checkpoint Attraction** | 5.0 | Move toward current checkpoint |
-| **Clockwise Enforcement** | 4.0 | Prevent counter-clockwise shortcuts |
-
-### Force Application
-```python
-# In models/horse.py - flock()
-steering_force = separation + alignment + cohesion + path + track + barriers + checkpoint + clockwise
-acceleration += steering_force
-velocity += acceleration
-position += velocity
-```
-
-### Stuck Detection & Recovery
-- **Stuck Timer:** Resets if horse moves < 1 pixel per frame for 250 frames
-- **Barrier Hit Counter:** Resets after 8 consecutive barrier hits
-- **Wrong Direction Penalty:** Resets if moving counter-clockwise too often
-- **Auto-Reset:** Returns horse to start when stuck conditions detected
-
----
-
-### Dependencies
-- Python 3.7+
-- Pygame 2.0+
-
----
-
-## 🎮 Controls
+## 🕹️ Controls
 
 | Input | Action |
 |-------|--------|
-| **Mouse Click** | Select a horse (shows info panel) |
-| **R Key** | Reset race (manual) |
-| **Reset Button** | Reset race (UI) |
-| **Q Key** | Quit after race completes |
+| **Mouse Click** | Select a horse to view stats |
+| **R Key** | Reset the race at any time |
+| **Reset Button** | Click the on-screen button to restart |
+| **Q Key** | Quit after race finishes (when prompted) |
 
 ---
 
-## 📁 File Structure
+## 🏁 How It Works
+
+The race begins automatically. Six horses start staggered along the right side of a square track and must navigate **9 checkpoints** in clockwise order to complete one lap. Each horse is an independent AI agent that:
+
+- Builds an **A* path** from its current position to the next checkpoint
+- Uses **flocking behaviors** to avoid collisions with other horses
+- **Remembers barriers** it hits to avoid them in future attempts
+- **Auto-resets** if it gets stuck or goes the wrong way
+
+The race ends when all horses finish. Results are displayed on screen and saved to `horse_rankings.json`.
+
+---
+
+## 🧠 AI Systems
+
+### A* Pathfinding
+Each horse uses the A* algorithm to find the most direct route along the track while avoiding walls and the invisible barrier that prevents counter-clockwise shortcuts.
+
+- **Grid resolution:** 10 pixels per cell
+- **Heuristic:** Euclidean (straight-line) distance
+- **Optimizations:** Path caching, line-of-sight smoothing, barrier memory
+
+### Flocking (Boids)
+Inspired by Craig Reynolds' Boids algorithm, each horse balances five simultaneous steering forces:
+
+| Force | Weight | Purpose |
+|-------|--------|---------|
+| Separation | 1.0 | Don't crowd other horses |
+| Path Following | 3.0 | Stick to the A* waypoint path |
+| Track Attraction | 3.0 | Stay on the brown track surface |
+| Barrier Avoidance | 5.0 | Steer away from walls |
+| Checkpoint Pull | 5.0 | Move toward the next checkpoint |
+| Clockwise Force | 4.0 | Prevent wrong-direction shortcuts |
+
+Forces are combined into a single steering vector each frame. Horses that hit too many barriers, stop moving, or go the wrong way too long will **automatically reset** to the starting line.
+
+---
+
+## 📊 Live Rankings
+
+A ranking panel on the right side of the screen shows real-time standings:
+
+- Finished horses sort by time
+- Racing horses sort by checkpoints reached
+- Reset count is tracked per horse
+
+Click any horse to see its name, speed, current checkpoint, and reset count.
+
+---
+
+## 📁 Project Structure
 
 ```
-project/
-├── main.py                     # Entry point
-├── config.py                   # Game settings (FPS, dimensions, horse names)
-├── README.md                   # This file
-├── horse_rankings.json         # Saved race results
+HorseRacer/
+├── main.py                     # Game entry point
+├── config.py                   # Settings: FPS, track size, horse names
+├── horse_rankings.json         # Persistent race results
+├── requirements.txt            # Python dependencies
 │
 ├── game/
-│   └── horse_race_game.py      # Main game loop and UI
+│   └── horse_race_game.py      # Main loop, UI, event handling
 │
 ├── models/
-│   ├── horse.py                # Horse agent with flocking logic
-│   ├── grid.py                 # Grid system for pathfinding
-│   ├── node.py                 # Node class for A*
-│   ├── vector2.py              # 2D vector math
-│   └── ranking.py              # Statistics and persistence
+│   ├── horse.py                # AI agent with flocking + pathfinding
+│   ├── grid.py                 # Grid system for A* pathfinding
+│   ├── node.py                 # Node class (walkable/unwalkable states)
+│   ├── vector2.py              # 2D vector math library
+│   └── ranking.py              # Statistics tracking and persistence
 │
 ├── pathfinding/
-│   └── astar.py                # A* pathfinding implementation
+│   └── astar.py                # A* algorithm implementation
 │
 ├── track/
-│   └── race_track.py           # Track generation and checkpoint system
+│   └── race_track.py           # Square track, checkpoints, barriers
 │
 └── utils/
-    └── colors.py               # Color palette
+    └── colors.py               # RGB color definitions
 ```
+
+---
+
+## 🏇 The Horses
+
+| Name | Color |
+|------|-------|
+| DASHER | Red |
+| BOLTO | Blue |
+| STORM | Yellow |
+| FLASH | Purple |
+| RACER | Orange |
+| ZIPPY | White |
+
+Each horse has the same AI but different starting positions, leading to emergent, unpredictable races every time.
+
+---
+
+## ⚙️ Configuration
+
+Edit `config.py` to customize:
+
+```python
+WIDTH, HEIGHT = 1280, 720   # Window size
+FPS = 60                     # Frame rate
+NUM_HORSES = 6               # Number of racers
+LAPS_TO_WIN = 1              # Laps required to finish
+HORSE_NAMES = ["DASHER", "BOLTO", "STORM", "FLASH", "RACER", "ZIPPY"]
+```
+
+---
+
+## ⚠️ Development Attribution
+
+- **Code Generation:** Core game logic, pathfinding algorithms, and agent behaviors were generated with assistance from DeepSeek AI.
+- **Documentation:** This README was written by Lumo (Proton's AI assistant).
+
+*This project is an educational example of human-AI collaborative software development.*
+
 ---
 
 ## 📄 License
 
-This project is for educational purposes. Feel free to modify and extend for learning pathfinding and flocking algorithms.
+This project is for educational purposes. Feel free to modify, extend, and learn from it.
 
 ---
 
 ## 🙏 Credits
 
-- **AI Code Generation:** DeepSeek
-- **Documentation & Architecture:** Lumo (Proton AI)
 - **A* Algorithm:** Based on Unity pathfinding tutorial logic
+- **Flocking Behavior:** Craig Reynolds' Boids algorithm (1986)
+- **Graphics:** Pygame rendering library
+- **AI Assistance:** DeepSeek (code generation), Lumo (documentation)
+
+---
+
+*Built for learning game AI and emergent behavior through human-AI collaboration*
 - **Flocking:** Craig Reynolds' Boids algorithm
 - **Graphics:** Pygame rendering library
 
